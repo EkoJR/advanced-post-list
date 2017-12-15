@@ -108,6 +108,11 @@ Go to [Q&A](https://support.advancedpostlist.com/qa/).
 
 == Changelog ==
 
+= 0.4.1 =
+* Fixed PHP Error with APL_Query.
+* Added stricter updating.
+* Fixed type case with Metabox.
+
 = 0.4.0 =
 * Added APL_Post_List Class for post data database structure with presets.
 * Added APL_Design Class for post data database structure with preset designs; before, content, after, & empty message.
