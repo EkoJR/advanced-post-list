@@ -65,6 +65,7 @@ function apl_import() {
 			foreach ( $tmp_design as $v2_design_import ) {
 				if ( $v1_d_slug === $v2_design_import->slug ) {
 
+					// TODO Change to Unique ID.
 					$apl_design = new APL_Design( $v2_design_import->slug );
 
 					$apl_design->title    = $v2_design_import->title    ?: $apl_design->title;

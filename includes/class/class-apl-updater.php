@@ -123,7 +123,7 @@ class APL_Updater {
 				$this->APL_upgrade_to_03b5();
 			}
 			// VERSION 0.4.0
-			if ( version_compare( '0.4.1', $old_version, '>' ) ) {
+			if ( version_compare( '0.4.0', $old_version, '>' ) ) {
 				if ( ! empty( $this->options ) ) {
 					$new_options = $this->upgrade_options_03b5_to_040( $this->options );
 					$this->options = $new_options;
@@ -135,6 +135,12 @@ class APL_Updater {
 
 					// Don't delete incase there is a revert.
 					//delete_option( 'APL_preset_db-default' );
+				}
+			}
+			if ( version_compare( '0.4.4', $old_version, '>' ) ) {
+				if ( ! empty( $this->apl_post_list_arr ) ) {
+					$new_post_list_arr = $this->upgrade_apl_post_list_db_040_to_044( $this->apl_post_list_arr );
+					$this->apl_post_list_arr = $new_post_list_arr;
 				}
 			}
 
@@ -630,7 +636,7 @@ class APL_Updater {
 				foreach ( $v1_preset_db_var as $k2_preset_slug => $old_value ) {
 					// Replace with stdClass
 					//$new_post_list = new APL_Post_List( $preset_key );
-					$new_post_list = $this->post_list_stdObj();
+					$new_post_list = $this->post_list_stdObj( '0.4.0' );
 
 					// ADD VALUES.
 					$new_post_list->slug   = sanitize_key( $k2_preset_slug )  ?: $new_post_list->slug;
@@ -883,6 +889,63 @@ class APL_Updater {
 		return $rtn_new_preset_arr;
 	}
 
+	/**
+	 * Upgrade Preset Database from 0.4.0 to 0.4.4
+	 *
+	 * Upgrades the Preset Database from "0.4.0" to "0.4.4".
+	 *
+	 * @ignore
+	 * @since 0.4.4
+	 * @access private
+	 *
+	 * @param object $old_post_list_arr Old Post List database.
+	 * @return array New Post List structure.
+	 */
+	private function upgrade_apl_post_list_db_040_to_044( $old_post_list_arr ) {
+		$rtn_new_post_list_arr = array();
+
+		foreach ( $old_post_list_arr as $old_post_list ) {
+			$new_post_list = $this->post_list_stdObj( '0.4.4' );
+
+			$new_post_list->id                  = isset( $old_post_list->id )                  ? $old_post_list->id                    : $new_post_list->id;
+			$new_post_list->slug                = sanitize_key( $old_post_list->slug )         ?: $new_post_list->slug;
+			$new_post_list->title               = $old_post_list->title                        ?: $new_post_list->title;
+			$new_post_list->post_type           = $old_post_list->post_type                    ?: $new_post_list->post_type;
+			$new_post_list->tax_query           = $old_post_list->tax_query                    ?: $new_post_list->tax_query;
+			$new_post_list->post_parent__in     = $old_post_list->post_parent__in              ?: $new_post_list->post_parent__in;
+			$new_post_list->post_parent_dynamic = $old_post_list->post_parent_dynamic          ?: $new_post_list->post_parent_dynamic;
+			$new_post_list->posts_per_page      = isset( $old_post_list->posts_per_page  )     ? $old_post_list->posts_per_page        : $new_post_list->posts_per_page;
+			$new_post_list->offset              = isset( $old_post_list->offset  )             ? $old_post_list->offset                : $new_post_list->offset;
+			$new_post_list->order_by            = $old_post_list->order_by                     ?: $new_post_list->order_by;
+			$new_post_list->order               = $old_post_list->order                        ?: $new_post_list->order;
+			$new_post_list->post_status         = $old_post_list->post_status                  ?: $new_post_list->post_status;
+			$new_post_list->perm                = $old_post_list->perm                         ?: $new_post_list->perm;
+			$new_post_list->author__bool        = $old_post_list->author__bool                 ?: $new_post_list->author__bool;
+			$new_post_list->author__in          = $old_post_list->author__in                   ?: $new_post_list->author__in;
+			$new_post_list->ignore_sticky_posts = isset( $old_post_list->ignore_sticky_posts ) ? $old_post_list->ignore_sticky_posts   : $new_post_list->ignore_sticky_posts;
+			$new_post_list->post__not_in        = $old_post_list->post__not_in                 ?: $new_post_list->post__not_in;
+			$new_post_list->pl_exclude_current  = isset( $old_post_list->pl_exclude_current )  ? $old_post_list->pl_exclude_current    : $new_post_list->pl_exclude_current;
+			$new_post_list->pl_exclude_dupes    = isset( $old_post_list->pl_exclude_dupes )    ? $old_post_list->pl_exclude_dupes      : $new_post_list->pl_exclude_dupes;
+			$new_post_list->pl_apl_design       = $old_post_list->pl_apl_design                ?: $new_post_list->pl_apl_design;
+
+			$tmp_apl_design = new APL_Design( $new_post_list->pl_apl_design );
+
+			$new_post_list->pl_apl_design_id    = isset( $tmp_apl_design->id )                 ? intval( $tmp_apl_design->id )         : $new_post_list->pl_apl_design_id;
+			$new_post_list->pl_apl_design_slug  = $tmp_apl_design->slug                        ?: $new_post_list->pl_apl_design_slug;
+
+			$rtn_new_post_list_arr[] = $new_post_list;
+		}
+
+		return $rtn_new_post_list_arr;
+	}
+
+	/**
+	 * (Default) Options Array
+	 *
+	 * @since ?
+	 *
+	 * @return array
+	 */
 	private function options_array() {
 		return array(
 			'version'               => APL_VERSION,
@@ -892,6 +955,7 @@ class APL_Updater {
 			'default_empty_output'  => '<p>' . __( 'Sorry, but no content is available at this time.', 'advanced-post-list' ) . '</p>',
 		);
 	}
+
 	/**
 	 * Post List Object
 	 *
@@ -899,14 +963,41 @@ class APL_Updater {
 	 *
 	 * @ignore
 	 * @since 0.4.0
+	 * @since 0.4.4 Set mock object based on version param.
+	 * @access private
+	 *
+	 * @param string $version
+	 * @return object
+	 */
+	private function post_list_stdObj( $version = '' ) {
+		// SET DEFAULTS MANUALLY.
+		switch( $version ) {
+			case '0.4.0' :
+				$rtn_post_list = $this->post_list_stdObj_0_4_0();
+				break;
+			case '0.4.4' :
+			default :
+				$rtn_post_list = $this->post_list_stdObj_0_4_4();
+				break;
+		}
+
+		return $rtn_post_list;
+	}
+
+	/**
+	 * Post List Object
+	 *
+	 * Sets the object as a stdClass to mock version 0.4.0 APL_Post_List.
+	 *
+	 * @ignore
+	 * @since 0.4.4
 	 * @access private
 	 *
 	 * @return object
 	 */
-	private function post_list_stdObj() {
+	private function post_list_stdObj_0_4_0() {
 		$rtn_post_list = new stdClass();
 
-		// SET DEFAULTS MANUALLY
 		$rtn_post_list->id                   = 0;
 		$rtn_post_list->slug                 = '';
 		$rtn_post_list->title                = '';
@@ -927,7 +1018,47 @@ class APL_Updater {
 		$rtn_post_list->pl_exclude_current   = true;
 		$rtn_post_list->pl_exclude_dupes     = false;
 		$rtn_post_list->pl_apl_design        = '';
-		
+
+		return $rtn_post_list;
+	}
+
+	/**
+	 * Post List Object
+	 *
+	 * Sets the object as a stdClass to mock version 0.4.0 APL_Post_List.
+	 *
+	 * @ignore
+	 * @since 0.4.4
+	 * @access private
+	 *
+	 * @return object
+	 */
+	private function post_list_stdObj_0_4_4() {
+		$rtn_post_list = new stdClass();
+
+		$rtn_post_list->id                   = 0;
+		$rtn_post_list->slug                 = '';
+		$rtn_post_list->title                = '';
+		$rtn_post_list->post_type            = array( 'any' );
+		$rtn_post_list->tax_query            = array();
+		$rtn_post_list->post_parent__in      = array();
+		$rtn_post_list->post_parent_dynamic  = array();
+		$rtn_post_list->posts_per_page       = 5;
+		$rtn_post_list->offset               = 0;
+		$rtn_post_list->order_by             = 'none';
+		$rtn_post_list->order                = 'DESC';
+		$rtn_post_list->post_status          = 'none';
+		$rtn_post_list->perm                 = 'none';
+		$rtn_post_list->author__bool         = 'none';
+		$rtn_post_list->author__in           = array();
+		$rtn_post_list->ignore_sticky_posts  = true;
+		$rtn_post_list->post__not_in         = array();
+		$rtn_post_list->pl_exclude_current   = true;
+		$rtn_post_list->pl_exclude_dupes     = false;
+		$rtn_post_list->pl_apl_design        = '';
+		$rtn_post_list->pl_apl_design_id     = 0;
+		$rtn_post_list->pl_apl_design_slug   = '';
+
 		return $rtn_post_list;
 	}
 
@@ -964,6 +1095,7 @@ class APL_Updater {
 	 *
 	 * @ignore
 	 * @since 0.4.0
+	 * @since 0.4.4 Added stricter object referrencing with APL_Designs.
 	 * @access private
 	 *
 	 * @param APL_Post_list $apl_post_list
@@ -1070,6 +1202,8 @@ class APL_Updater {
 		$new_post_list->pl_exclude_current   = isset( $apl_post_list->pl_exclude_current )   ? $apl_post_list->pl_exclude_current   : $new_post_list->pl_exclude_current;
 		$new_post_list->pl_exclude_dupes     = isset( $apl_post_list->pl_exclude_dupes )     ? $apl_post_list->pl_exclude_dupes     : $new_post_list->pl_exclude_dupes;
 		$new_post_list->pl_apl_design        = isset( $apl_post_list->pl_apl_design )        ? $apl_post_list->pl_apl_design        : $new_post_list->pl_apl_design;
+		$new_post_list->pl_apl_design_id     = isset( $apl_post_list->pl_apl_design_id )     ? $apl_post_list->pl_apl_design_id     : $new_post_list->pl_apl_design_id;
+		$new_post_list->pl_apl_design_slug   = isset( $apl_post_list->pl_apl_design_slug )   ? $apl_post_list->pl_apl_design_slug   : $new_post_list->pl_apl_design_slug;
 
 		return $new_post_list;
 	}
@@ -1198,6 +1332,7 @@ class APL_Updater {
 		
 		
 		foreach ( $apl_design_arr as $apl_design ) {
+			// TODO Change to Unique ID.
 			$tmp_apl_design = new APL_Design( $apl_design->slug );
 
 			$tmp_apl_design->title    = $apl_design->title    ?: $tmp_apl_design->title;

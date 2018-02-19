@@ -257,6 +257,22 @@ class APL_Post_List {
 	public $pl_apl_design = '';
 
 	/**
+	 * APL Design class ID
+	 *
+	 * @since 0.4.4
+	 * @var int
+	 */
+	public $pl_apl_design_id = 0;
+
+	/**
+	 * APL Design Slug
+	 *
+	 * @since 0.4.4
+	 * @var string
+	 */
+	public $pl_apl_design_slug = '';
+
+	/**
 	 * APL Post List Constructor
 	 *
 	 * Class Constructor.
@@ -295,6 +311,7 @@ class APL_Post_List {
 	 * Get Post Data and set as Post List class.
 	 *
 	 * @since 0.4.0
+	 * @since 0.4.4 Added stricter APL_Design object referencing.
 	 *
 	 * @see WP_Query Args.
 	 * @link https://gist.github.com/luetkemj/2023628
@@ -359,7 +376,10 @@ class APL_Post_List {
 			$this->pl_exclude_dupes     = ( false !== $tmp_pl_exclude_dupes )     ? (bool) $tmp_pl_exclude_dupes    : false;
 
 			//$apl_design_slug            = apply_filters( 'apl_post_list_get_data_apl_design_slug', $this->slug );
-			$this->pl_apl_design        = get_post_meta( $this->id, 'apl_pl_apl_design', true )        ?: '';
+			$this->pl_apl_design        = get_post_meta( $this->id, 'apl_pl_apl_design', true )      ?: '';
+			$this->pl_apl_design_id     = get_post_meta( $this->id, 'apl_pl_apl_design_id', true )   ?: 0;
+			$this->pl_apl_design_id     = intval( $this->pl_apl_design_id );
+			$this->pl_apl_design_slug   = get_post_meta( $this->id, 'apl_pl_apl_design_slug', true ) ?: '';
 
 			return true;
 		} else {
@@ -520,10 +540,15 @@ class APL_Post_List {
 	 * Description.
 	 *
 	 * @since 0.4.0
+	 * @since 0.4.4 - Added compatibility with WPML, and stricter object referencing.
 	 *
 	 * @see Function/method/class relied on
 	 * @link https://codex.wordpress.org/Plugin_API/Action_Reference/wp_insert_post
 	 * @global global $_POST Description.
+	 * @uses `wpml_object_id`
+	 * @link https://wpml.org/wpml-hook/wpml_object_id/
+	 * @uses `wpml_default_language`
+	 * @link https://wpml.org/wpml-hook/wpml_default_language/
 	 *
 	 * @param int     $post_id   Post ID.
 	 * @param WP_Post $post_obj  Post object.
@@ -559,6 +584,8 @@ class APL_Post_List {
 		$old_pl_exclude_dupes     = ( false !== $old_pl_exclude_dupes )     ? (bool) $old_pl_exclude_dupes    : null;
 
 		$old_pl_apl_design        = get_post_meta( $this->id, 'apl_pl_apl_design', true );
+		$old_pl_apl_design_id     = intval( get_post_meta( $this->id, 'apl_pl_apl_design_id', true ) );
+		$old_pl_apl_design_slug   = get_post_meta( $this->id, 'apl_pl_apl_design_slug', true );
 
 		// Compare and update if modified.
 		if ( $this->post_type !== $old_post_type ) {
@@ -609,8 +636,24 @@ class APL_Post_List {
 		if ( $this->pl_exclude_dupes !== $old_pl_exclude_dupes ) {
 			update_post_meta( $this->id, 'apl_pl_exclude_dupes', $this->pl_exclude_dupes );
 		}
+
+		if ( defined( 'ICL_SITEPRESS_VERSION' ) ) {
+			$default_lang = apply_filters('wpml_default_language', NULL );
+			$apl_design_post_id = apply_filters( 'wpml_object_id', $this->pl_apl_design_id, 'apl_design', false, $default_lang );
+			if ( ! empty( $apl_design_post_id ) ) {
+				$this->pl_apl_design_id = intval( $apl_design_post_id );
+			}
+		}
+
+		// APL Design.
 		if ( $this->pl_apl_design !== $old_pl_apl_design ) {
 			update_post_meta( $this->id, 'apl_pl_apl_design', $this->pl_apl_design );
+		}
+		if ( $this->pl_apl_design_id !== $old_pl_apl_design_id ) {
+			update_post_meta( $this->id, 'apl_pl_apl_design_id', $this->pl_apl_design_id );
+		}
+		if ( $this->pl_apl_design_slug !== $old_pl_apl_design_slug ) {
+			update_post_meta( $this->id, 'apl_pl_apl_design_slug', $this->pl_apl_design_slug );
 		}
 
 		remove_action( 'save_post_apl_post_list', array( &$this, 'hook_action_save_post_apl_post_list' ) );

@@ -1062,6 +1062,7 @@ class APL_Admin {
 	 * Hook for untrash Post Transition with Post Lists.
 	 *
 	 * @since 0.4.0
+	 * @since 0.4.4 Added stricter APL_Design object referencing.
 	 *
 	 * @param int $post_id
 	 * @return boolean
@@ -1084,7 +1085,7 @@ class APL_Admin {
 
 		$apl_post_list = new APL_Post_List( $post_list->post_name );
 
-		$apl_design = new APL_Design( $apl_post_list->pl_apl_design );
+		$apl_design = new APL_Design( $apl_post_list->pl_apl_design_id );
 
 		$new_post_list_slug = str_replace( '__trashed', '', $post_list->post_name );
 		$new_design_slug = '';
@@ -1106,6 +1107,7 @@ class APL_Admin {
 	 * Host for delete post transitions with Post Lists.
 	 *
 	 * @since 0.4.0
+	 * @since 0.4.4 Added stricter APL_Design object referencing.
 	 * @see https://codex.wordpress.org/Plugin_API/Action_Reference/before_delete_post
 	 *
 	 * @param int $post_id
@@ -1128,7 +1130,7 @@ class APL_Admin {
 		}
 
 		$apl_post_list = new APL_Post_List( $post_list->post_name );
-		$apl_design = new APL_Design( $apl_post_list->pl_apl_design );
+		$apl_design = new APL_Design( $apl_post_list->pl_apl_design_id );
 
 		$apl_design->delete_design();
 	}
@@ -1296,6 +1298,9 @@ class APL_Admin {
 	 * AJAX Settings Page Export
 	 *
 	 * Handles the AJAX call for exporting data.
+	 *
+	 * @since 0.3
+	 * @since 0.4.4 Added stricter APL_Design object referencing.
 	 */
 	public function ajax_settings_export() {
 		check_ajax_referer( 'apl_settings_export' );
@@ -1327,7 +1332,7 @@ class APL_Admin {
 
 		foreach ( $apl_post_lists->posts as $post_obj ) {
 			$apl_post_list  = new APL_Post_List( $post_obj->post_name );
-			$apl_design     = new APL_Design( $apl_post_list->pl_apl_design );
+			$apl_design     = new APL_Design( $apl_post_list->pl_apl_design_id );
 
 			$export_data['apl_post_list_arr'][] = $apl_post_list->slug;
 			$export_data['apl_design_arr'][] = $apl_design->slug;
@@ -1410,6 +1415,7 @@ class APL_Admin {
 
 			// DESIGNS.
 			foreach ( $v1_content['apl_design_arr'] as $v2_design ) {
+				// Uses slug instead of ID.
 				$db_design = new APL_Design( $v2_design->slug );
 				if ( 0 !== $db_design->id ) {
 					$overwrite_apl_design[] = $v2_design;
@@ -1496,6 +1502,7 @@ class APL_Admin {
 	 *
 	 * @ignore
 	 * @since 0.4.0
+	 * @since 0.4.4 Added stricter APL_Design object referencing.
 	 * @access private
 	 *
 	 * @see $this->save_post_list()
@@ -1688,7 +1695,11 @@ class APL_Admin {
 			$new_design_slug = $post->post_name;
 		}
 
-		$apl_post_list->pl_apl_design = $this->post_list_process_apl_design( $apl_post_list->pl_apl_design, $new_design_slug );
+		$tmp_apl_design = $this->post_list_process_apl_design( $apl_post_list->pl_apl_design, $new_design_slug );
+
+		$apl_post_list->pl_apl_design      = $tmp_apl_design->slug;
+		$apl_post_list->pl_apl_design_id   = $tmp_apl_design->id;
+		$apl_post_list->pl_apl_design_slug = $tmp_apl_design->slug;
 	}
 
 	/**
@@ -1775,11 +1786,12 @@ class APL_Admin {
 	 *
 	 * @ignore
 	 * @since 0.4.0
+	 * @since 0.4.4 Added stricter APL_Design object referencing; Changed to return APL_Design.
 	 * @access private
 	 *
 	 * @param string $apl_design_slug Current active slug.
 	 * @param string $new_design_slug New slug relative to $this->pl_apl_design.
-	 * @return string Slug used in $this->pl_apl_design.
+	 * @return APL_Design Slug used in $this->pl_apl_design.
 	 */
 	private function post_list_process_apl_design( $apl_design_slug, $new_design_slug ) {
 		$apl_design = new APL_Design( $apl_design_slug );
@@ -1822,25 +1834,21 @@ class APL_Admin {
 		// Save APL_Design.
 		$apl_design->save_design();
 
-		// SLUG/KEY.
-		$rtn_apl_design_slug = '';
-		$rtn_apl_design_slug = $apl_design->slug;
-
-		return $rtn_apl_design_slug;
+		return $apl_design;
 	}
 
 	/**
 	 * Process APL Design Class
 	 *
 	 * @since 0.4.0
+	 * @since 0.4.4 Added stricter APL_Design object referencing.
 	 * @access private
 	 *
 	 * @param int      $post_id  Contains the ID of the post type.
 	 * @param WP_Post  $post     New Post Data content to save/update.
 	 */
 	private function design_process( $post_id, $post ) {
-		$old_post = get_post( $post_id );
-		$apl_design = new APL_Design( $old_post->post_name );
+		$apl_design = new APL_Design( $post_id );
 
 		// BEFORE.
 		$tmp_apl_design_before = '';
